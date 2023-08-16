@@ -35,8 +35,51 @@ def DP(n, H, tile_types, tile_values):
 
     # By defualt we return False
     # TODO you should change this
-    res = False
-    return res
+
+    Memo = [[None] * n for i in range(n)]
+
+    def helper(n, row, col, H, tile_types, tile_values, protection, multiplier):
+        if H < 0:
+            return False
+        if row == n or col == n:
+            return False
+        if row == n - 1 and col == n - 1:
+            if (tile_types[row][col] == 0 and H - tile_values[row][col] < 0):
+                Memo[row][col] = False
+            else:
+                Memo[row][col] = True
+            return Memo[row][col]
+        if Memo[row][col] is not None:
+            return Memo[row][col]
+        
+        if tile_types[row][col] == 0:
+            opt1 = helper(n, row, col + 1, H - tile_values[row][col] * (not protection), tile_types, tile_values, False, multiplier) \
+                or helper(n, row + 1, col, H - tile_values[row][col] * (not protection), tile_types, tile_values, False, multiplier)
+            opt2 = False
+            if protection:
+                opt2 = helper(n, row, col + 1, H - tile_values[row][col], tile_types, tile_values, True, multiplier) \
+                or helper(n, row + 1, col, H - tile_values[row][col], tile_types, tile_values, True, multiplier)
+            Memo[row][col] = opt1 or opt2
+
+        elif tile_types[row][col] == 1:
+            opt1 = helper(n, row, col + 1, H + tile_values[row][col] * (multiplier * 2), tile_types, tile_values, protection, 0) \
+                or helper(n, row + 1, col, H + tile_values[row][col] * (multiplier * 2), tile_types, tile_values, protection, 0)
+            opt2 = False
+            if multiplier:
+                opt2 = helper(n, row, col + 1, H + tile_values[row][col], tile_types, tile_values, protection, multiplier) \
+                    or helper(n, row + 1, col, H + tile_values[row][col], tile_types, tile_values, protection, multiplier)
+            Memo[row][col] = opt1 or opt2
+
+        elif tile_types[row][col] == 2:
+            Memo[row][col] = helper(n, row, col + 1, H, tile_types, tile_values, True, multiplier) \
+                or helper(n, row + 1, col, H, tile_types, tile_values, True, multiplier)
+
+        elif tile_types[row][col] == 3:
+            Memo[row][col] = helper(n, row, col + 1, H, tile_types, tile_values, protection, True) \
+                or helper(n, row + 1, col, H, tile_types, tile_values, protection, True)
+        return Memo[row][col]
+
+    return helper(n, 0, 0, H, tile_types, tile_values, False, False)
 
 
 def write_output_file(output_file_name, result):
