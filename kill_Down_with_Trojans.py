@@ -36,51 +36,52 @@ def DP(n, H, tile_types, tile_values):
     # By defualt we return False
     # TODO you should change this
 
-    Memo = [[None] * n for i in range(n)]
+    Memo = np.full([n,n,2,2], -1)
 
-    def helper(n, row, col, H, tile_types, tile_values, protection, multiplier):
-        if H < 0:
-            return False
-        if row == n or col == n:
-            return False
-        if row == n - 1 and col == n - 1:
-            if (tile_types[row][col] == 0 and H - tile_values[row][col] < 0):
-                Memo[row][col] = False
-            else:
-                Memo[row][col] = True
-            return Memo[row][col]
-        if Memo[row][col] is not None:
-            return Memo[row][col]
-        
-        if tile_types[row][col] == 0:
-            opt1 = helper(n, row, col + 1, H - tile_values[row][col] * (not protection), tile_types, tile_values, False, multiplier) \
-                or helper(n, row + 1, col, H - tile_values[row][col] * (not protection), tile_types, tile_values, False, multiplier)
-            opt2 = False
-            if protection:
-                opt2 = helper(n, row, col + 1, H - tile_values[row][col], tile_types, tile_values, True, multiplier) \
-                or helper(n, row + 1, col, H - tile_values[row][col], tile_types, tile_values, True, multiplier)
-            Memo[row][col] = opt1 or opt2
+    Memo[0][0][0][0] = H
 
-        elif tile_types[row][col] == 1:
-            opt1 = helper(n, row, col + 1, H + tile_values[row][col] * (multiplier * 2), tile_types, tile_values, protection, 0) \
-                or helper(n, row + 1, col, H + tile_values[row][col] * (multiplier * 2), tile_types, tile_values, protection, 0)
-            opt2 = False
-            if multiplier:
-                opt2 = helper(n, row, col + 1, H + tile_values[row][col], tile_types, tile_values, protection, multiplier) \
-                    or helper(n, row + 1, col, H + tile_values[row][col], tile_types, tile_values, protection, multiplier)
-            Memo[row][col] = opt1 or opt2
+    for i in range(n):
+        for j in range(n):
 
-        elif tile_types[row][col] == 2:
-            Memo[row][col] = helper(n, row, col + 1, H, tile_types, tile_values, True, multiplier) \
-                or helper(n, row + 1, col, H, tile_types, tile_values, True, multiplier)
+            left0, left1, left2, left3, top0, top1, top2, top3 = -1, -1, -1, -1, -1, -1, -1, -1
 
-        elif tile_types[row][col] == 3:
-            Memo[row][col] = helper(n, row, col + 1, H, tile_types, tile_values, protection, True) \
-                or helper(n, row + 1, col, H, tile_types, tile_values, protection, True)
-        return Memo[row][col]
+            if i == 0 and j == 0:
+                continue
+            if i > 0:
+                ...
+            if j > 0:
+                left0 = Memo[i][j-1][0][0]
+                left1 = Memo[i][j-1][0][1]
+                left2 = Memo[i][j-1][1][1]
+                left3 = Memo[i][j-1][1][0]
+                if i > 0:
+                    top0 = Memo[i-1][j][0][0]
+                    top1 = Memo[i-1][j][0][1]
+                    top2 = Memo[i-1][j][1][1]
+                    top3 = Memo[i-1][j][1][0]
+                if tile_types[i][j] == 0:
+                    Memo[i][j][0][0] = max(max(left0, top0) - tile_values[i][j], top3, left3)
+                    Memo[i][j][0][1] = max(top1,top2,left1,left2) - tile_values[i][j]
+                    Memo[i][j][1][1] = max(left0, left2, top0, top2) - tile_values[i][j]
+                    Memo[i][j][1][0] = max(max(left3, top3) - tile_values[i][j], left2, top2)
+                if tile_types[i][j] == 1:
+                    Memo[i][j][0][0] = max(left0, top0) + tile_values[i][j]
+                    Memo[i][j][0][1] = max(top1,top2,left1,left2) + tile_values[i][j]
+                    Memo[i][j][1][1] = max(left0, left2, top0, top2) + tile_values[i][j]
+                    Memo[i][j][1][0] = max(left3, top3, left2, top2) + tile_values[i][j]
+                if tile_types[i][j] == 2:
+                    Memo[i][j][0][0] = max(left0, top0)
+                    Memo[i][j][0][1] = max(top1,top2,left1,left2)
+                    Memo[i][j][1][1] = max(left0, left2, top0, top2)
+                    Memo[i][j][1][0] = max(left3, top3, left2, top2)
+                if tile_types[i][j] == 3:
+                    Memo[i][j][0][0] = max(left0, top0)
+                    Memo[i][j][0][1] = max(top1,top2,left1,left2)
+                    Memo[i][j][1][1] = max(left0, left2, top0, top2)
+                    Memo[i][j][1][0] = max(left3, top3, left2, top2)
 
-    return helper(n, 0, 0, H, tile_types, tile_values, False, False)
 
+    return Memo[n-1][n-1][0][0] > 0 or Memo[n-1][n-1][0][1] > 0 or Memo[n-1][n-1][1][1] > 0 or Memo[n-1][n-1][1][0] > 0
 
 def write_output_file(output_file_name, result):
     with open(output_file_name, 'w') as file:
