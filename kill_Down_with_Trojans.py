@@ -36,52 +36,75 @@ def DP(n, H, tile_types, tile_values):
     # By defualt we return False
     # TODO you should change this
 
-    Memo = np.full([n,n,2,2], -1)
+    n = len(tile_types)
 
-    Memo[0][0][0][0] = H
+    # No token
+    dp_h = [[-float('inf')] * n for _ in range(n)]
+    # Protection token
+    dp_h_p = [[-float('inf')] * n for _ in range(n)]
+    # Multiplier token
+    dp_h_m = [[-float('inf')] * n for _ in range(n)]
+    # Both tokens
+    dp_h_p_m = [[-float('inf')] * n for _ in range(n)]
 
-    for i in range(n):
-        for j in range(n):
+    if H < 0:
+        return False
 
-            left0, left1, left2, left3, top0, top1, top2, top3 = -1, -1, -1, -1, -1, -1, -1, -1
+    dp_h[0][0] = H
+    
 
-            if i == 0 and j == 0:
+    for row in range(n):
+        for col in range(n):
+            v = tile_values[row][col]
+            if row == 0 and col == 0:
                 continue
-            if i > 0:
-                ...
-            if j > 0:
-                left0 = Memo[i][j-1][0][0]
-                left1 = Memo[i][j-1][0][1]
-                left2 = Memo[i][j-1][1][1]
-                left3 = Memo[i][j-1][1][0]
-                if i > 0:
-                    top0 = Memo[i-1][j][0][0]
-                    top1 = Memo[i-1][j][0][1]
-                    top2 = Memo[i-1][j][1][1]
-                    top3 = Memo[i-1][j][1][0]
-                if tile_types[i][j] == 0:
-                    Memo[i][j][0][0] = max(max(left0, top0) - tile_values[i][j], top3, left3)
-                    Memo[i][j][0][1] = max(top1,top2,left1,left2) - tile_values[i][j]
-                    Memo[i][j][1][1] = max(left0, left2, top0, top2) - tile_values[i][j]
-                    Memo[i][j][1][0] = max(max(left3, top3) - tile_values[i][j], left2, top2)
-                if tile_types[i][j] == 1:
-                    Memo[i][j][0][0] = max(left0, top0) + tile_values[i][j]
-                    Memo[i][j][0][1] = max(top1,top2,left1,left2) + tile_values[i][j]
-                    Memo[i][j][1][1] = max(left0, left2, top0, top2) + tile_values[i][j]
-                    Memo[i][j][1][0] = max(left3, top3, left2, top2) + tile_values[i][j]
-                if tile_types[i][j] == 2:
-                    Memo[i][j][0][0] = max(left0, top0)
-                    Memo[i][j][0][1] = max(top1,top2,left1,left2)
-                    Memo[i][j][1][1] = max(left0, left2, top0, top2)
-                    Memo[i][j][1][0] = max(left3, top3, left2, top2)
-                if tile_types[i][j] == 3:
-                    Memo[i][j][0][0] = max(left0, top0)
-                    Memo[i][j][0][1] = max(top1,top2,left1,left2)
-                    Memo[i][j][1][1] = max(left0, left2, top0, top2)
-                    Memo[i][j][1][0] = max(left3, top3, left2, top2)
+            
+            # Damage
+            if tile_types[row][col] == 0:
+                # Best health of no tokens = Previously no tokens or use protection token
+                temp = max(dp_h[row - 1][col] - v, dp_h[row][col - 1] - v, dp_h_p[row - 1][col], dp_h_p[row][col - 1])
+                dp_h[row][col] = temp if temp >= 0 else -float('inf')
+                # Best health of only protection token = Protection token and choose not to use
+                temp = max(dp_h_p[row - 1][col] - v, dp_h_p[row][col - 1] - v)
+                dp_h_p[row][col] = temp if temp >= 0 else -float('inf')
+                # Best health of only multiplier token = Previously multiplier token or had both and use protection token
+                temp = max(dp_h_m[row - 1][col] - v, dp_h_m[row][col - 1] - v, dp_h_p_m[row - 1][col], dp_h_p_m[row][col - 1])
+                dp_h_m[row][col] = temp if temp >= 0 else -float('inf')
+                # Best health of having both tokens = previously have multiplier and protection tokens, and don't use
+                temp =  max(dp_h_p_m[row - 1][col] - v, dp_h_p_m[row][col - 1] - v)
+                dp_h_p_m[row][col] = temp if temp >= 0 else -float('inf')
 
+            # Healing
+            if tile_types[row][col] == 1:
+                # Best health of no tokens = Previously no tokens or use multiplier token 
+                dp_h[row][col] = max(dp_h[row - 1][col] + v, dp_h[row][col - 1] + v, dp_h_m[row - 1][col] + (v * 2), dp_h_m[row][col - 1] + (v * 2))
+                # Best health of only multiplier token = Multiplier token and choose not to use
+                dp_h_m[row][col] = max(dp_h_m[row - 1][col] + v, dp_h_m[row][col - 1] + v)
+                # Best health of only protection token = Previously protection token or had both and use multiplier token
+                dp_h_p[row][col] = max(dp_h_p[row - 1][col] + v, dp_h_p[row][col - 1] + v, dp_h_p_m[row - 1][col] + (v * 2), dp_h_p_m[row][col - 1] + (v * 2))
+                # Best health of having both tokens = previously have multiplier and protection tokens, and don't use
+                dp_h_p_m[row][col] = max(dp_h_p_m[row - 1][col] + v, dp_h_p_m[row][col - 1] + v)
 
-    return Memo[n-1][n-1][0][0] > 0 or Memo[n-1][n-1][0][1] > 0 or Memo[n-1][n-1][1][1] > 0 or Memo[n-1][n-1][1][0] > 0
+            # Protection
+            if tile_types[row][col] == 2:
+                # Health of current tile with protection tile is just best health without protection tiles
+                dp_h_p[row][col] = max(dp_h[row - 1][col], dp_h[row][col - 1], dp_h_p[row-1][col], dp_h_p[row][col-1])
+                # Health of current tile with protection tile and multiplier tile is just best health with only multiplier tile
+                dp_h_p_m[row][col] = max(dp_h_m[row - 1][col], dp_h_m[row][col - 1], dp_h_p_m[row-1][col], dp_h_p_m[row][col-1])
+                 # Else no tokens = default 0
+           
+           # Multiplier
+            if tile_types[row][col] == 3:
+                # Health of current tile with multiplier tile is just best health without multiplier tiles
+                dp_h_m[row][col] = max(dp_h[row - 1][col], dp_h[row][col - 1], dp_h_m[row-1][col], dp_h_m[row][col-1])
+                # Health of current tile with multiplier tile and multiplier tile is just best health with only protection tile
+                dp_h_p_m[row][col] = max(dp_h_p[row - 1][col], dp_h_p[row][col - 1], dp_h_p_m[row-1][col], dp_h_p_m[row][col-1])
+                if row == 0 and col == 2:
+                    print(dp_h[row][col-1])
+                # Else no tokens = default 0
+
+    return dp_h[-1][-1] >= 0 or dp_h_p[-1][-1] >= 0 or dp_h_p_m[-1][-1] >= 0 or dp_h_m[-1][-1] >= 0
+
 
 def write_output_file(output_file_name, result):
     with open(output_file_name, 'w') as file:
